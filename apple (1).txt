@@ -1,0 +1,826 @@
+
+phpd3637
+
+
+char 固定長度 
+>ex.身分字號 
+
+
+varchar 可變動長度 
+> 有多一個結束符號,會在你的字元加上結束字元最後砍掉 判別輸入多少字元 
+> ex.上限是50 長度值虛設為50+1(結束字符)
+
+差異
+char 比 varchar 快
+
+(ppt 8-10)
+資料欄位重複性高的 拆成兩個表 可以節省記憶體空間
+
+
+
+sql
+
+SELECT * FROM `bill`
+/* WHERE fee >= 500 and fee < 700 */
+/* WHERE fee BETWEEN 500 and 700 */
+/* WHERE fee NOT BETWEEN 500 and 700 */
+/* WHERE fee < 500 or fee >=700; */;
+
+
+SELECT * FROM `userinfo`
+/* WHERE uid = 'A01' or uid = 'A02'; */
+/* WHERE uid IN ('A01', 'A02'); */
+/* WHERE uid NOT IN ('A01', 'A02'); */
+/* WHERE uid <> 'A01' AND uid <> 'A02'; */
+
+
+SELECT * FROM `bill` ORDER BY fee DESC , tel;
+
+SELECT * FROM `userinfo`
+WHERE cname is null or cname = '';
+
+SELECT * FROM `userinfo` 
+WHERE cname <> '王大明' /* 資料會少 null */
+or cname is null; /* 需而外判斷 */
+
+SELECT cname, address, tel 
+FROM `userinfo`, live, house, phone
+WHERE userinfo.uid = live.uid AND
+	live.hid = house.hid AND
+    house.hid = phone.hid AND
+    live.uid = 'A01';
+
+SELECT cname 
+FROM `userinfo`, live, house, phone 
+WHERE userinfo.uid = live.uid AND live.hid = house.hid AND house.hid = phone.hid AND address LIKE '台中市%';
+
+SELECT * 
+FROM userinfo 
+    LEFT JOIN live 
+    ON userinfo.uid = live.uid 
+    LEFT JOIN house 
+    on live.hid = house.hid 
+    LEFT JOIN phone 
+    on house.hid = phone.hid 
+WHERE 
+    userinfo.uid = 'A06';
+
+SELECT userinfo.uid, cname, ifnull(address, 'no place'), ifnull(tel,  'no phone')
+FROM userinfo LEFT JOIN live
+	ON userinfo.uid = live.uid 
+    LEFT JOIN house
+    on live.hid = house.hid
+    LEFT JOIN phone
+    on house.hid = phone.hid
+WHERE userinfo.uid = 'A06';
+
+## SUM 總和
+## GROUP BY 群組
+SELECT tel, SUM(fee) as total FROM `bill` GROUP by tel;
+
+## AVG 平均
+## round(x ,num) 四捨五入取整數
+## ceil(x) 無條件進位取整數
+## floor(x) 無條件捨取小數
+
+## 群組邏輯
+SELECT b.tel, address, floor(AVG(fee)) as total 
+FROM 
+	`bill` as b, phone as p, house as h
+WHERE 
+	b.tel = p.tel AND 
+    p.hid = h.hid
+GROUP by 
+	b.tel, address;
+
+
+# 測驗:一個人有幾棟房子
+SELECT u.cname as '名稱', COUNT(l.hid) as '傭有幾棟房'
+FROM `userinfo` as u LEFT JOIN live as l
+	on u.uid = l.uid 
+    LEFT JOIN house as h
+    on l.hid = h.hid
+GROUP BY
+	u.cname;
+
+# 測驗2:每棟房子有幾個人住
+SELECT address as '房子', COUNT(l.hid) as '幾個人住'
+FROM 
+	house as h
+    LEFT JOIN live as l
+    ON h.hid = l.hid
+    LEFT JOIN userinfo as u
+    on l.uid = u.uid
+GROUP BY 
+	h.hid, l.hid;
+
+# left right substring
+SELECT LEFT(cname, 1) FROM `userinfo`;
+       right(x, 1)
+       substring(x, a, b) => x從第a取到第b // 多使用於自串
+
+# concat 兩個字串相加
+SELECT concat('aaa', 'bbb');
+
+#! DISTINCT 合併重複
+SELECT DISTINCT LEFT(cname, 1) FROM userinfo WHERE cname is not null;
+
+# 巢狀寫法
+SELECT lastname, count(*) as N
+FROM (
+    SELECT LEFT(cname, 1) as lastname 
+    FROM userinfo
+	WHERE cname is not null and cname <> ''
+) as a
+GROUP BY lastname;
+
+#x 有問題的寫法 >>> 遇到同分只會取一
+SELECT tel, sum(fee) as total 
+FROM `bill`
+GROUP BY tel
+ORDER BY total DESC
+LIMIT 1;
+
+# 巢巢圈 取極限值寫法
+SELECT *
+FROM (
+    SELECT max(sum_fee) as max_fee
+    FROM(
+        SELECT SUM(fee) as sum_fee 
+        FROM `bill`
+        GROUP BY tel
+    ) as a
+) as a2, (
+    SELECT tel, sum(fee) as total 
+    FROM `bill`
+    GROUP BY tel
+) as b
+WHERE a2.max_fee = b.total;
+
+# 測驗3:哪些房子是沒有住人的
+SELECT *
+FROM(
+    SELECT address, COUNT(l.hid) as how
+    FROM 
+        house as h LEFT JOIN live as l
+        on h.hid = l.hid
+    GROUP BY h.hid
+) as b
+WHERE b.how = 0;
+
+# 測驗4:空屋率 >>> 取出幾間沒人住 / 總房屋
+SELECT  (    
+SELECT COUNT(*)
+FROM(
+    SELECT address, COUNT(l.hid) as how
+    FROM 
+        house as h LEFT JOIN live as l
+        on h.hid = l.hid
+    GROUP BY h.hid
+) as b
+WHERE b.how = 0
+) / ( SELECT COUNT(*) FROM house);
+
+#! UNION 加一筆資料到 table
+SELECT * FROM `userinfo` UNION ALL SELECT 'Z01', 'hunter';
+
+# LIMIT x  LIMIT x, y
+SELECT * FROM `userinfo` LIMIT x; 只取x行值
+SELECT * FROM `userinfo` LIMIT x , y; 跳過x筆後 顯示y行
+
+# HAVING 放在group by之後
+SELECT tel, sum(fee) as total 
+FROM `bill`
+GROUP by tel
+HAVING total > 1000;
+
+# WHERE  放在group by之前
+
+# view 涵試庫的概念
+create view name as (內容)
+編輯 > 檢視表 > 編輯存檔
+
+
+
+START TRANSACTION;
+	DELETE FROM new_table;
+COMMIT;
+
+SELECT * FROM new_table;
+
+歲數(待解決問題)
+select cname, birthday, timestampdiff(year, birthday, DATE_SUB(CURDATE(),INTERVAL dayofyear(now())-1 DAY)) age from userinfo;
+
+中華民國(???
+SELECT concat(
+	'中華民國',
+    substring(date_format(adddate(now(), INTERVAL -1911 year), '%Y'), 2),
+    '年',
+	date_format(now(), '%c月%e日')
+);
+
+測驗5:2019金額總和
+SELECT sum(fee) FROM `bill` WHERE year(dd)= 2019;
+
+每季總餘額(包含沒有的季節
+SELECT gei, sum(fee)
+FROM(
+SELECT quarter(dd) gei,fee FROM `bill` WHERE year(dd) = 2019
+    UNION ALL
+    SELECT 1,0
+    UNION ALL
+    SELECT 2,0
+    UNION ALL
+    SELECT 3,0
+    UNION ALL
+    SELECT 4,0
+) as test
+GROUP by gei;
+
+
+上下半年(尚未完善)
+SELECT a1
+FROM(
+SELECT mon, sum(fee)
+FROM(
+SELECT month(dd) mon,fee FROM `bill` WHERE year(dd) = 2019
+) as test
+WHERE mon <= 6
+) as a1,(
+SELECT mon, sum(fee)
+FROM(
+SELECT month(dd) mon,fee FROM `bill` WHERE year(dd) = 2019
+) as test
+WHERE mon > 6
+) as a2
+
+########
+老師作法
+########
+SELECT floor(month(dd) / 7.0) as half_year,sum(fee)
+FROM bill
+WHERE YEAR(dd) = 2019
+GROUP BY half_year;
+
+
+SELECT * FROM `bill` 
+-- WHERE year(dd) = 2019 and month(dd) = 1
+WHERE date_format(dd, '%Y%m') = '201901';
+
+創建triggers
+DELIMITER $$
+CREATE TRIGGER bbb AFTER DELETE on userinfo for EACH ROW
+BEGIN
+	INSERT INTO log (body) VALUES (concat('將',old.uid,'資料刪除'));
+END $$
+DELIMITER ;
+
+修改
+將old欄位 修改為new欄位
+
+秀出所有triggers
+SHOW TRIGGERS;
+
+無法暫停-->只能刪除
+Drop TRIGGER name;
+
+
+###
+CREATE TRIGGER `ccc` AFTER UPDATE ON `userinfo`
+ FOR EACH ROW BEGIN
+	INSERT into log (body) VALUES (concat('將',old.uid,'姓名由',ifnull(old.cname, 'Null'),'改為', ifnull(new.cname, 'Null')));
+END
+concat(null, '1111') > null
+解決
+ifnull(concat(null, '123'))
+
+
+####
+ddd
+
+DELIMITER $$
+
+CREATE TRIGGER ddd BEFORE UPDATE on userinfo FOR EACH ROW
+BEGIN
+	if @count is null THEN
+    	SET @count = 1;
+    ELSE
+    	SET @count = @count + 1;
+    end if;
+    
+    if @count > 1 THEN
+    	SIGNAL SQLSTATE '45001' set MESSAGE_TEXT = '無效動作';
+    end if;
+END $$
+
+DELIMITER ;
+
+
+SIGNAL 發出信號
+SQLSTATE '45001' sql的代碼 45000後是自訂
+mseeage_text 自訂訊息內容
+
+sql程式
+宣告並顯示
+SELECT @pwd := pwd FROM userinfo WHERE uid = 'A02';
+
+只宣告不顯示
+SELECT pwd into @pwd FROM userinfo WHERE uid = 'A02';
+
+CREATE PROCEDURE find(str varchar(20))
+BEGIN
+	DECLARE name varchar(20) DEFAULT null;
+    
+    SELECT cname into name from userinfo WHERE uid = str;
+    SELECT name;
+end;
+
+##呼叫
+CALL find('A02');
+
+drop PROCEDURE find;
+
+DELIMITER $$
+
+CREATE PROCEDURE2 find(y int)
+BEGIN
+    SELECT * from (
+        SELECT quarter(dd) as quarter, sum(fee) as total
+        FROM bill
+        WHERE year(dd) = y
+        GROUP by quarter
+        UNION ALL
+        SELECT 1, 0
+        UNION ALL
+        SELECT 2, 0
+        UNION ALL
+        SELECT 3, 0
+        UNION ALL
+        SELECT 4, 0
+    ) as A
+    GROUP by quarter;
+end $$
+
+DELIMITER ;
+
+##呼叫
+call find(2023);
+
+絕對值
+ABS()
+
+
+cd 到xampp Bin
+
+sudo ./mariadb-upgrade
+
+
+測驗6:
+V2
+drop PROCEDURE login;
+
+DELIMITER $$
+
+CREATE PROCEDURE login(myuid varchar(51), mypwd varchar(20))
+BEGIN
+	DECLARE my_uid varchar(51) DEFAULT null;
+	
+	SELECT uid into my_uid FROM userinfo WHERE uid = myuid and pwd = mypwd;
+    
+    if (my_uid is not Null) THEN
+    	SELECT 'welcome.html';
+    ELSE
+    	SELECT 'no error.html';
+    END if;
+	-- yes welcome.html
+    -- no error.html
+end $$
+
+DELIMITER ;
+
+
+變數交換
+DELIMITER $$
+    create procedure swap(inouta int, inoutb int)
+    begin
+        declare tmpint;
+        set tmp= a;
+        set a = b;
+        set b = tmp;
+    end $$
+DELIMITER ;
+
+測試
+set @a = 10;
+set @b = 20;
+SELECT @a as 'before' UNION all SELECT @b;
+call swap(@a, @b);
+SELECT @a as 'after' UNION all SELECT @b;
+
+
+測驗7 商品如何防治超賣
+v1
+DELIMITER $$
+
+CREATE PROCEDURE buy1(mypid int)
+BEGIN
+	DECLARE n int DEFAULT 0;
+    SELECT quantity into n FROM product WHERE pid = mypid;
+    IF n > 0 THEN
+    	UPDATE product SET quantity = quantity - 1 WHERE pid = mypid;
+    end if;
+END $$
+
+DELIMITER ;
+
+v2 自行調整版
+BEGIN
+	DECLARE n int DEFAULT 0;
+    SELECT quantity into n FROM product WHERE pid = mypid;
+	do sleep(5);
+	IF n > 0 THEN
+    	UPDATE product SET quantity = quantity - 1 WHERE pid = mypid and quantity > 0;
+    	do sleep(5);
+    end if;
+END
+
+v3老師解法
+BEGIN
+	DECLARE n int DEFAULT 0;
+    
+    START TRANSACTION;
+    	UPDATE product SET quantity = quantity - 1 WHERE pid = mypid;
+        do sleep(5);
+    	SELECT quantity into n FROM product WHERE pid = mypid;
+        do sleep(5);    
+    	IF n > -1 THEN
+        	commit;
+            do sleep(5);
+        else
+        	ROLLBACK;
+            do sleep(5);
+    	end if;
+END
+
+先上x鎖 讓TRANSACTION中只有唯一進去update的人執行區間程式
+第二個人 商品會-1 進入 ROLLBACK 此時 quantity 恢復為 0
+
+select s鎖
+update x鎖
+零界區間(???)
+
+while 迴圈
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `test`()
+BEGIN
+    set @sum = 0;
+    set @i = 0;
+
+    myloop: WHILE @i <= 10 DO
+        SET @sum = @sum + @i;
+		set @i = @i + 1;
+        if @i = 3 THEN
+        	leave myloop;
+         end if;
+    end WHILE myloop;
+
+    select @sum;
+end$$
+DELIMITER ;
+
+
+####
+iterate => continue
+DROP PROCEDURE test;
+
+DELIMITER $$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `test`()
+BEGIN
+    set @sum = 0;
+    set @i = 0;
+
+    myloop: WHILE @i <= 10 DO
+         if @i = 3 THEN
+        	SET @i = @i + 1;
+            iterate myloop;
+         end if;
+        SET @sum = @sum + @i;
+		set @i = @i + 1;
+    end WHILE myloop;
+
+    select @sum;
+end$$
+DELIMITER ;
+
+DELIMITER $$
+create function maxfee() returns int
+begin
+	declare value int;
+    select max(fee) into value from Bill;
+    return value;
+end $$
+
+DELIMITER ;
+
+
+EOF -> end of file
+
+
+資料備份
+INSERT into name (col, col) select col,col from old.tablename;
+
+測驗8:將舊縣市地址轉為正確地址
+
+台>臺
+縣>市
+市>區
+
+V1
+drop FUNCTION chname;
+
+DELIMITER $$
+CREATE FUNCTION chname() returns int
+BEGIN
+	declare EOF bool default false;
+	declare n int;
+    declare c cursor for select address from house;
+    declare continue handler for not found set EOF = true;
+	
+    open c;
+	fetch c into n;
+    while !EOF do
+		UPDATE house set address = replace(address, '台', '臺'); 
+		UPDATE house set address = replace(replace(address, '市', '區'), '縣', '市') WHERE address like "%縣%";
+        fetch c into n;
+	end while;
+    close c;
+    SET @word = "select * from house";
+    RETURN @word;
+end $$
+DELIMITER ;
+
+v2
+drop FUNCTION IF EXISTS chname;
+
+DELIMITER $$
+CREATE FUNCTION chname() returns int
+BEGIN
+	declare EOF bool default false;
+	declare n int;
+	declare w varchar(20);
+    declare c cursor for select address from house;
+    declare continue handler for not found set EOF = true;
+	
+    open c;
+	fetch c into n;
+    while !EOF do
+		UPDATE house set address = replace(address, '台', '臺'); 
+        IF n regexp '^(桃園縣|臺中縣|臺南縣|高雄縣)' THEN
+        	set w = 'test';
+        /*
+        	SET @p = REPLACE(n, SUBSTRING(n, 3, 1), '市');
+            UPDATE house set address = @p;
+        ELSEIF n regexp '^臺北縣'
+        	SET @p = REPLACE(n, SUBSTRING(n, 1, 3), '新北市');
+            UPDATE house set address = @p;
+        */
+        END IF;
+        fetch c into n;
+	end while;
+    close c;
+    RETURN w;
+end $$
+DELIMITER ;
+
+v3
+drop FUNCTION IF EXISTS chname;
+
+DELIMITER $$
+CREATE FUNCTION chname() returns int
+BEGIN
+	declare EOF bool default false;
+	declare n int;
+	declare w varchar(20);
+    declare c cursor for select address from house;
+    declare continue handler for not found set EOF = true;
+	
+    open c;
+	fetch c into n;
+    while !EOF do
+        select n;
+		IF n regexp '^台' THEN
+			SET @p = REPLACE(n, SUBSTRING(n, 1, 1), '臺');
+            UPDATE house set address = @p;
+        /*
+        IF n regexp '^(桃園縣|臺中縣|臺南縣|高雄縣)' THEN
+        	set w = 'test';
+        	SET @p = REPLACE(n, SUBSTRING(n, 3, 1), '市');
+            UPDATE house set address = @p;
+        ELSEIF n regexp '^臺北縣'
+        	SET @p = REPLACE(n, SUBSTRING(n, 1, 3), '新北市');
+            UPDATE house set address = @p;
+        */
+        END IF;
+        fetch c into n;
+	end while;
+    close c;
+    RETURN w;
+end $$
+DELIMITER ;
+
+v4
+drop procedure IF EXISTS chname;
+
+DELIMITER $$
+CREATE procedure chname()
+BEGIN
+	declare EOF bool default false;
+	declare n int;
+	declare w varchar(20);
+    declare c cursor for select address from house;
+    declare continue handler for not found set EOF = true;
+	
+    open c;
+	fetch c into n;
+    while !EOF do
+        select n;
+		IF n regexp '^台' THEN
+			SET @p = REPLACE(n, SUBSTRING(n, 1, 1), '臺');
+            UPDATE house set address = @p;
+        /*
+        IF n regexp '^(桃園縣|臺中縣|臺南縣|高雄縣)' THEN
+        	set w = 'test';
+        	SET @p = REPLACE(n, SUBSTRING(n, 3, 1), '市');
+            UPDATE house set address = @p;
+        ELSEIF n regexp '^臺北縣'
+        	SET @p = REPLACE(n, SUBSTRING(n, 1, 3), '新北市');
+            UPDATE house set address = @p;
+        */
+        END IF;
+        fetch c into n;
+	end while;
+    close c;
+end $$
+DELIMITER ;
+
+
+drop procedure IF EXISTS pro_name;
+
+delimiter $$
+create procedure pro_name()
+begin
+	declare flag bool default false;
+    DECLARE continue handler for sqlexception set flag= true;
+    
+    start transaction;
+        update userinfo set cname = '李小妹' where uid= 'A04';
+        insert into userinfo (uid) values ('C01');
+        
+        if flag then
+        	rollback;
+        	select 'FAIL: rollback';
+        else
+            commit;
+        	select 'SUCCESS: commit';
+        end if;
+end $$
+delimiter ;
+
+
+explain > 確認有沒有用索引
+
+沒有用索引>線性索引
+
+
+
+購物車
+v1
+
+drop procedure if EXISTS T_buy;
+
+DELIMITER $$
+	
+CREATE PROCEDURE T_buy(myuid int, num int)
+BEGIN
+	DECLARE x int DEFAULT 0;
+    DECLARE y int DEFAULT 0;
+    DECLARE tttt int DEFAULT 0;
+    
+    START TRANSACTION;
+    	update book set quantity = quantity - num WHERE bid = mybid;
+       	SELECT price,  into y FROM book WHERE bid = mybid; 
+       	SELECT quantity into x FROM book WHERE bid = mybid; 
+       IF x > -1 THEN
+       		INSERT into orders (uid, bid, buy_quantity, book_total) VALUES (myuid, mybid, num, tttt);
+            COMMIT;
+       ELSE
+       		ROLLBACK;
+       end if;
+END $$
+
+DELIMITER ;
+
+
+create table
+
+
+drop procedure if EXISTS cart;
+
+DELIMITER $$
+	
+CREATE PROCEDURE cart(myuid int, mybid int, num int)
+BEGIN
+	DECLARE x int DEFAULT 0;
+    DECLARE y int DEFAULT 0;
+    
+    START TRANSACTION;
+        SELECT price into y FROM book WHERE bid = mybid; 
+       	SELECT quantity into x FROM book WHERE bid = mybid; 
+        IF x >= num THEN
+       	 	INSERT into cart (uid, bid, buy_q, c_total, removed) VALUES (myuid, mybid, num, y*num, true);
+            select b.title, c.buy_q, c.c_total from cart c join book b on b.bid = c.bid where uid = myuid ;
+            COMMIT;
+        ELSE
+        	select 'Error!';
+       		ROLLBACK;
+        end if;
+END$$
+
+DELIMITER ;
+
+
+cars
+
+cid
+uid
+bid
+buy_q
+c_total
+removed
+
+
+
+drop procedure if EXISTS T_buy;
+
+DELIMITER $$
+	
+CREATE PROCEDURE T_buy(myuid int)
+BEGIN
+	DECLARE carId, carBId, carQ, carT int DEFAULT 0;
+    DECLARE t, q int DEFAULT 0;
+    DECLARE total int DEFAULT 0;
+    DECLARE randomId varchar(11);
+
+    declare EOF bool default false;
+    declare c cursor for select cid, bid, buy_q, c_total from cart where uid = myuid and selected = 1 and state = 0;
+    declare continue handler for not found set EOF = true;
+    
+    select cast(floor(rand()*100) as int) into randomId;
+
+    open c;
+    FETCH c INTO carId, carBId, carQ, carT;
+    WHILE !EOF DO
+        /*
+    	START TRANSACTION;
+    	    -- update book set quantity = quantity - carQ WHERE bid = carBId;
+       		SELECT title, quantity into t, q FROM book WHERE bid = carBId;
+        IF q > -1 THEN
+            UPDATE cart SET selected = 2,state = 1 WHERE uid = myuid and selected = 1 and bid = carBId;
+            set total = total + carT;
+            
+            if (select oid from orders where oid = randomId and uid = myuid) is null then
+                INSERT into orders(oid, uid, book_total) VALUES (randomId, myuid, total);
+            else
+                update orders set book_total = total where oid = randomId and uid = myuid;
+            end if;
+            insert into pay(oid, cid) VALUES (randomId, carId);
+            SELECT concat('商品',t,'付款成功待商家配送!');           
+            COMMIT;
+        ELSE
+       		SELECT concat('數量不足<',t,'>目前剩餘',b,'本!');
+       		ROLLBACK;
+        end if;
+            */
+        select carId, carBId, carQ, carT;
+        FETCH c INTO carId, carBId, carQ, carT;
+    end while;
+    close c;
+END $$
+
+DELIMITER ;
+
+
+## 提示問題重點
+重複購買 > 應顯示在同一格cart
+作者和語文應該要獨立出一個表格
+
+超賣輸入負數的解決辦法
+rollback 顯示錯誤問題
+
+畫面需要用淺色
+
+當你選擇商品為零 那購物車應該該項目應該為0
+
+邏輯: 商品項目 > 數量 > 金額
+
+拆單 >>> 

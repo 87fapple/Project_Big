@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <title>Document</title>
+</head>
+<script>
+    function ajax(myuser) {
+        fetch('sql.php', {
+            method: 'post',
+            body: myuser
+        })
+            .then(function (response) {
+                return response.json()
+            })
+            .then(function (data){
+                console.log(data);
+                cname.innerHTML = `${data.cname}`
+                address.innerHTML = `${data.address}`
+                tel.innerHTML = `${data.tel}`
+            })
+    }
+
+    window.onload = function () {
+        login.onclick = function (e) {
+            e.preventDefault();
+            let myuser = new FormData(form)
+            ajax(myuser);
+        }
+    }
+</script>
+
+<body>
+    <form id="form">
+        user:<input id="username" name="username">
+        <p></p>
+        password:<input id="password" name="password">
+        <p></p>
+        <button id="login">login</button>
+    </form>
+    <p></p>
+    <div id="cname"></div>
+    <div id="address"></div>
+    <div id="tel"></div>
+</body>
+
+</html>

@@ -1,0 +1,27 @@
+[-{rw-}{r--}{r--}@] a b @為mac特殊符號 a傭有者
+- 檔案
+l 捷徑
+d 資料夾
+{1}: onwer
+{2}: group
+{3}: others
+
+ex: onwer>c group>c  
+
+// sudo change owner
+sudo chown daemon data.txt
+
+// change group
+chgrp
+
+// change mode +w
+chmod o+w data.txt
+
+// change mode -r
+chmod o-r data.txt
+
+windows wsl
+
+查看檔案內容
+cat (mac)
+type (windows)

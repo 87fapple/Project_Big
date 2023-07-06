@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <title>Document</title>
+</head>
+<script>
+    window.onload = function () {
+        $('#r_uid').blur(function (e) {
+            e.preventDefault();
+            fetch(`test.php?uid=${r_uid.value}`)
+                .then(function (response) {
+                    return response.text();
+                })
+                .then(function (data) {
+                    $('#show').html(data);
+                })
+        });
+
+        $('#register').onclick(function (e) {
+            e.preventDefault();
+            fetch('ck_register.php', {
+                method: post,
+                body: new FormData(myform)
+            }
+            )
+        })
+    }
+
+</script>
+
+<body>
+    <form id="myform" action="post">
+        uid:<input type="text" id="r_uid" name="r_uid">&nbsp;<span id="show"></span>
+        <p></p>
+        pwd:<input type="password" id="r_password" name="pwd">
+        <p></p>
+        confirm:<input type="text" id="r_confirm">
+        <p></p>
+        <button id="register">註冊</button>
+    </form>
+</body>
+
+</html>

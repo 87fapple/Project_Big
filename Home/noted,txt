@@ -1,0 +1,4 @@
+mysqli_report > 啟用內部報告功能
+
+mysqli_report_error > 報告錯誤
+mysqli_report_strict > 拋出語法錯誤,並非警告

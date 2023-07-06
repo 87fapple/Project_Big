@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Document</title>
+</head>
+<script>
+window.onload = function() {
+   query.onclick = function(event) {
+       event.preventDefault();
+       fetch(`sql.php?uid=${uid.value}`)
+       .then(function(response) {
+           return response.text();
+       })
+       .then(function(data) {
+           data = data.trim()
+           let rows = data.split('\n');
+           let view = '';
+           rows.forEach(function(item) {
+               let fields = item.split(',')
+               view += `
+                   <div>
+                       <label>姓名：</label><label>${fields[0]}</label>
+                   </div>
+                   <div>
+                       <label>住址：</label><label>${fields[1]}</label>
+                   </div>
+                   <div>
+                       <label>電話：</label><label>${fields[2]}</label>
+                   </div>
+                   <hr>
+               `
+           })
+           userinfo.innerHTML = view
+       })
+
+       headphoto.innerHTML = `<img src="getimage.php?uid=${uid.value}" width="200">`
+   }
+}
+</script>
+<body>
+   <form>
+       <input placeholder="Input UserId" name="uid" id="uid"><p></p>
+       <button id="query">查詢</button>
+   </form>
+   <p></p>
+   <div id="container">
+        <div id="headphoto"></div>
+        <div id="userinfo"></div>
+   </div>
+</body>
+</html>

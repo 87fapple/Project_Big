@@ -1,0 +1,13 @@
+DELIMITER $$
+CREATE PROCEDURE queryUserInfo(myuid varchar(50), noice varchar(50))
+BEGIN
+select UserInfo.uid, ifnull(cname, noice) as cname, ifnull(address, noice) as address, ifnull(tel, noice) as tel
+from UserInfo left join Live
+   on UserInfo.uid  = Live.uid
+   left join House
+   on live.hid = House.hid
+   left join phone
+   on Phone.hid = House.hid
+where UserInfo.uid = myuid;
+END $$
+DELIMITER ;
